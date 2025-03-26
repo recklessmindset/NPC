@@ -131,16 +131,14 @@ while true do
     wait(1)
 end
 
--- Check if the function is available for teleport queueing
-if KeepInfYield and (not TeleportCheck) then
-    TeleportCheck = true
-    
-    -- Queue the teleport to execute your script using the raw URL
-    local teleportQueue = queueteleport or queue_on_teleport or queueonteleport  -- Adapt this for your executor
-    
-    if teleportQueue then
-        teleportQueue("loadstring(game:HttpGet('https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua'))()")
-    else
-        warn("Teleport queue function not found.")
-    end
+-- Determine the teleport queue function based on available methods
+local q = (syn and syn.queue_on_teleport) or queue_for_teleport or queue_on_teleport or queueonteleport
+
+-- If a teleport queue function exists, proceed to queue the script for execution
+if q then
+    -- Queue the execution of your raw script URL after teleport
+    q("loadstring(game:HttpGet('https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua'))()")
 end
+
+-- Teleport to the same game place ID
+game:GetService("TeleportService"):Teleport(game.PlaceId)
