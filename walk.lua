@@ -131,7 +131,7 @@ while true do
     wait(1)
 end
 
-print("hii")
+
 local TeleportCheck = false
 game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     if not TeleportCheck and queue_on_teleport then
