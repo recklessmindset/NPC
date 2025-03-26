@@ -88,14 +88,26 @@ local function faceTargetPlayer(targetPlayer)
     character.HumanoidRootPart.CFrame = CFrame.new(character.HumanoidRootPart.Position, targetPosition)
 end
 
+-- Server hop function
+local function serverHop()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+end
+
 -- Main loop
 local lastTeleportTime = tick()
+local lastServerHopTime = tick()
 local targetPlayer = getRandomEligiblePlayer()
 while true do
     -- Check if 60 seconds have passed since the last teleport
     if tick() - lastTeleportTime > 60 and targetPlayer == nil then
         teleportToRandomPlayer()
         lastTeleportTime = tick()
+    end
+    
+    -- Check if 10 minutes have passed since the last server hop
+    if tick() - lastServerHopTime > 10 then
+        serverHop()
+        lastServerHopTime = tick()
     end
     
     -- Walk to target player
@@ -119,14 +131,16 @@ while true do
     wait(1)
 end
 
--- Re-execution on teleport
-local function queueOnTeleport()
-    local TeleportService = game:GetService("TeleportService")
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
+-- Check if the function is available for teleport queueing
+if KeepInfYield and (not TeleportCheck) then
+    TeleportCheck = true
     
-    TeleportService.Teleported:Connect(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/recklessmindset/NPC/main/NPC.lua"))()
-    end)
+    -- Queue the teleport to execute your script using the raw URL
+    local teleportQueue = queueteleport or queue_on_teleport or queueonteleport  -- Adapt this for your executor
+    
+    if teleportQueue then
+        teleportQueue("loadstring(game:HttpGet('https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua'))()")
+    else
+        warn("Teleport queue function not found.")
+    end
 end
-queueOnTeleport()
