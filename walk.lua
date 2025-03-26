@@ -131,14 +131,11 @@ while true do
     wait(1)
 end
 
--- Determine the teleport queue function based on available methods
-local q = (syn and syn.queue_on_teleport) or queue_for_teleport or queue_on_teleport or queueonteleport
-
--- If a teleport queue function exists, proceed to queue the script for execution
-if q then
-    -- Queue the execution of your raw script URL after teleport
-    q("loadstring(game:HttpGet('https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua'))()")
-end
-
--- Teleport to the same game place ID
-game:GetService("TeleportService"):Teleport(game.PlaceId)
+print("hii")
+local TeleportCheck = false
+game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
+    if not TeleportCheck and queue_on_teleport then
+        TeleportCheck = true
+        queue_on_teleport([[loadstring(game:HttpGet('https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua'))()]])
+    end
+end)
