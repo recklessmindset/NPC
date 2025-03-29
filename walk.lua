@@ -1,141 +1,94 @@
 -- Configuration
-local antiModIDs = {
-    7423673502,
-    38701072,
-    418307435,
-    73344996,
-    37343237,
-    210949,
-    103578797,
-    2542703855,
-    1159074474,
-    1562079996,
-    337367059
-}
+local serverHopInterval = 600 -- 10 minutes
+local teleportTimeout = 60 -- 1 minute
+local gameId = 6218169544
+local distanceFromPlayers = 5 -- 5 studs
+local walkSpeed = 10 -- walking speed
 
--- Function to check if a player is eligible (not in antiModIDs list)
-local function isPlayerEligible(player)
-    local gameId = game.PlaceId
-    if gameId == 6218169544 then
-        for _, id in pairs(antiModIDs) do
-            if player.UserId == id then
-                return false
-            end
-        end
-    end
-    return true
-end
-
--- Function to get a random eligible player
-local function getRandomEligiblePlayer()
-    local players = game:GetService("Players"):GetPlayers()
-    local eligiblePlayers = {}
-    
-    for _, player in pairs(players) do
-        if player ~= game.Players.LocalPlayer and isPlayerEligible(player) then
-            table.insert(eligiblePlayers, player)
-        end
-    end
-    
-    if #eligiblePlayers > 0 then
-        return eligiblePlayers[math.random(1, #eligiblePlayers)]
-    else
-        return nil
+-- Anti-Mod list functionality
+local antiModList = {}
+if game.PlaceId == gameId then
+    -- Load anti-mod list
+    for _, playerId in pairs({1234567890, 9876543210}) do -- Replace with actual player IDs
+        table.insert(antiModList, playerId)
     end
 end
 
--- Function to calculate a position at a certain distance from a target position
-local function getPositionAtDistance(targetPosition, distance)
-    local character = game.Players.LocalPlayer.Character
-    local direction = (targetPosition - character.HumanoidRootPart.Position).Unit
-    return targetPosition - direction * distance
-end
-
--- Anti-sit function
-local function antiSit()
-    for _, object in pairs(workspace:GetDescendants()) do
-        if object:IsA("Seat") then
-            object:Destroy()
-        end
-    end
-end
-
--- Function to teleport to a random player
-local function teleportToRandomPlayer()
-    local randomPlayer = getRandomEligiblePlayer()
-    if randomPlayer then
-        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = randomPlayer.Character.HumanoidRootPart.CFrame
-    end
-end
-
--- Function to walk to target player
-local function walkToTargetPlayer(targetPlayer)
-    local character = game.Players.LocalPlayer.Character
-    local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
-    local distance = 5
-    
-    while (character.HumanoidRootPart.Position - targetPosition).Magnitude > distance do
-        character.Humanoid:MoveTo(targetPosition)
-        wait(0.1)
-    end
-end
-
--- Function to face target player
-local function faceTargetPlayer(targetPlayer)
-    local character = game.Players.LocalPlayer.Character
-    local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
-    local direction = (targetPosition - character.HumanoidRootPart.Position).Unit
-    character.HumanoidRootPart.CFrame = CFrame.new(character.HumanoidRootPart.Position, targetPosition)
-end
-
--- Server hop function
-local function serverHop()
-    game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
-end
-
--- Main loop
-local lastTeleportTime = tick()
-local lastServerHopTime = tick()
-local targetPlayer = getRandomEligiblePlayer()
+-- Server hop functionality
+local lastServerHop = tick()
 while true do
-    -- Check if 60 seconds have passed since the last teleport
-    if tick() - lastTeleportTime > 60 and targetPlayer == nil then
-        teleportToRandomPlayer()
-        lastTeleportTime = tick()
+    if tick() - lastServerHop >= serverHopInterval then
+        -- Server hop
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId)
+        lastServerHop = tick()
     end
-    
-    -- Check if 10 minutes have passed since the last server hop
-    if tick() - lastServerHopTime > 10 then
-        serverHop()
-        lastServerHopTime = tick()
-    end
-    
-    -- Walk to target player
-    if targetPlayer then
-        walkToTargetPlayer(targetPlayer)
-        faceTargetPlayer(targetPlayer)
-        
-        -- Check if we've reached the target player
-        if (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - targetPlayer.Character.HumanoidRootPart.Position).Magnitude < 5 then
-            targetPlayer = nil
-            lastTeleportTime = tick()
-        end
-    else
-        targetPlayer = getRandomEligiblePlayer()
-    end
-    
-    -- Anti-sit
-    antiSit()
-    
-    -- Wait for 1 second
     wait(1)
 end
 
-
-local TeleportCheck = false
-game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
-    if not TeleportCheck and queue_on_teleport then
-        TeleportCheck = true
-        queue_on_teleport([[loadstring(game:HttpGet('https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua'))()]])
+-- Teleport to player functionality
+local function teleportToPlayer()
+    local players = game:GetService("Players"):GetPlayers()
+    for _, player in pairs(players) do
+        if player ~= game:GetService("Players").LocalPlayer then
+            local character = player.Character
+            if character and character.HumanoidRootPart then
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, {character.HumanoidRootPart.Position + Vector3.new(0, 0, distanceFromPlayers)})
+                return
+            end
+        end
     end
-end)
+end
+
+-- Walk to player functionality
+local function walkToPlayer()
+    local players = game:GetService("Players"):GetPlayers()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    for _, player in pairs(players) do
+        if player ~= game:GetService("Players").LocalPlayer then
+            local character = player.Character
+            if character and character.HumanoidRootPart then
+                local distance = (game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+    if closestPlayer then
+        local character = closestPlayer.Character
+        if character and character.HumanoidRootPart then
+            local direction = (character.HumanoidRootPart.Position - game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position).Unit
+            game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame + direction * walkSpeed * (1/60)
+            if (game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude < distanceFromPlayers then
+                game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame + Vector3.new(0, 0, distanceFromPlayers)
+            end
+        end
+    end
+end
+
+-- Main loop
+local lastTeleport = tick()
+while true do
+    walkToPlayer()
+    if tick() - lastTeleport >= teleportTimeout then
+        teleportToPlayer()
+        lastTeleport = tick()
+    end
+    wait(1/60)
+end
+
+-- Queue on teleport functionality
+local queueOnTeleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
+
+local function queueOnTeleportFunc()
+    local TeleportService = game:GetService("TeleportService")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    
+    TeleportService.Teleported:Connect(function()
+        loadstring(game:HttpGet("https://github.com/recklessmindset/NPC/blob/main/Code"))()
+    end)
+end
+queueOnTeleport(queueOnTeleportFunc)
