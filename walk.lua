@@ -75,11 +75,13 @@ local function walkToTargetPlayer(targetPlayer)
     local character = game.Players.LocalPlayer.Character
     local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
     local distance = 5
+    local walkSpeed = 16
+    
+    character.Humanoid.WalkSpeed = walkSpeed
     
     while (character.HumanoidRootPart.Position - targetPosition).Magnitude > distance do
         local direction = (targetPosition - character.HumanoidRootPart.Position).Unit
-        local newPosition = character.HumanoidRootPart.Position + direction * 0.5
-        character.Humanoid:MoveTo(newPosition)
+        character.Humanoid:MoveTo(targetPosition)
         wait(0.1)
     end
 end
