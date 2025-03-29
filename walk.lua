@@ -163,5 +163,5 @@ end
 
 -- Re-execution on teleport
 if queueteleport then
-    queueteleport(loadstring(game:HttpGet("https://github.com/recklessmindset/NPC/blob/main/Code")))
+    queueteleport(loadstring(game:HttpGet("https://raw.githubusercontent.com/recklessmindset/NPC/refs/heads/main/walk.lua")))
 end
