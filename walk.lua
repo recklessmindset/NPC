@@ -103,42 +103,65 @@ end
 local lastTeleportTime = tick()
 local lastServerHopTime = tick()
 local targetPlayer = getRandomEligiblePlayer()
+local reachedPlayer = false
+local reachedPlayerTime = 0
+local queueteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or queueteleport or (fluxus and fluxus.queue_on_teleport)
+
 while true do
-    -- Check if 60 seconds have passed since the last teleport
-    if tick() - lastTeleportTime > 60 and targetPlayer == nil then
-        teleportToRandomPlayer()
-        lastTeleportTime = tick()
-    end
-    
-    -- Check if 10 minutes have passed since the last server hop
-    if tick() - lastServerHopTime > 600 then
-        serverHop()
-        lastServerHopTime = tick()
-    end
-    
-    -- Walk to target player
-    if targetPlayer then
-        walkToTargetPlayer(targetPlayer)
-        faceTargetPlayer(targetPlayer)
-        
-        -- Check if we've reached the target player
-        if (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - targetPlayer.Character.HumanoidRootPart.Position).Magnitude < 5 then
-            targetPlayer = nil
-            lastTeleportTime = tick()
+    -- Check if the character is dead
+    local character = game.Players.LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") or character.Humanoid.Health <= 0 then
+        wait(1)
+        character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            targetPlayer = getRandomEligiblePlayer()
+            reachedPlayer = false
         end
     else
-        targetPlayer = getRandomEligiblePlayer()
+        -- Check if 60 seconds have passed since the last teleport
+        if tick() - lastTeleportTime > 60 and targetPlayer == nil then
+            teleportToRandomPlayer()
+            lastTeleportTime = tick()
+        end
+        
+        -- Check if 10 minutes have passed since the last server hop
+        if tick() - lastServerHopTime > 600 then
+            serverHop()
+            lastServerHopTime = tick()
+        end
+        
+        -- Walk to target player
+        if targetPlayer and not reachedPlayer then
+            walkToTargetPlayer(targetPlayer)
+            faceTargetPlayer(targetPlayer)
+            
+            -- Check if we've reached the target player
+            if (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - targetPlayer.Character.HumanoidRootPart.Position).Magnitude < 5 then
+                reachedPlayer = true
+                reachedPlayerTime = tick()
+            end
+        elseif reachedPlayer and tick() - reachedPlayerTime < 8 then
+            -- Stay near the player for 8 seconds
+            walkToTargetPlayer(targetPlayer)
+            faceTargetPlayer(targetPlayer)
+        elseif reachedPlayer and tick() - reachedPlayerTime >= 8 then
+            -- Reset and find a new target player
+            targetPlayer = nil
+            reachedPlayer = false
+            lastTeleportTime = tick()
+        else
+            targetPlayer = getRandomEligiblePlayer()
+        end
+        
+        -- Anti-sit
+        antiSit()
+        
+        -- Wait for 1 second
+        wait(1)
     end
-    
-    -- Anti-sit
-    antiSit()
-    
-    -- Wait for 1 second
-    wait(1)
 end
 
 -- Re-execution on teleport
-local queueOnTeleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
-if queueOnTeleport then
-    queueOnTeleport(loadstring(game:HttpGet("https://github.com/recklessmindset/NPC/blob/main/Code")))
+if queueteleport then
+    queueteleport(loadstring(game:HttpGet("https://github.com/recklessmindset/NPC/blob/main/Code")))
 end
